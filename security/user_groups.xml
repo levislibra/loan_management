@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<openerp>
+  <data>
+
+	<record model="ir.module.category" id="financiera_prestamos_management">
+	  <field name="name">Financiera prestamos</field>
+	  <field name="description">Nivel de acceso</field>
+	  <field name="sequence">5</field>
+	</record>
+
+	<record id="manager" model="res.groups">
+     <field name="name">Administrador</field>
+     <field name="category_id" ref="financiera_prestamos_management"/>
+    </record>
+
+    <record id="user" model="res.groups">
+     <field name="name">Usuario</field>
+     <field name="category_id" ref="financiera_prestamos_management"/>
+    </record>
+
+</data>
+</openerp>

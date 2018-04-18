@@ -1,0 +1,773 @@
+<openerp>
+  <data>
+    <!-- financiera.cuenta -->
+    
+    <record model="ir.ui.view" id="financiera_cuenta_tree">
+      <field name="name">Cuenta</field>
+      <field name="model">financiera.cuenta</field>
+      <field name="arch" type="xml">
+        <tree decoration-info="state == 'borrador'" string="Cuentas">
+          <field name="cliente_id"/>
+          <field name="name"/>
+          <field name="cliente_dni"/>
+          <field name="responsable_id"/>
+          <field name="saldo" sum="Total" widget="monetary"/>
+          <field name="state"/>
+        </tree>
+      </field>
+    </record>
+
+    <record id="financiera_cuenta_form" model="ir.ui.view">
+        <field name="name">financiera.cuenta.form</field>
+        <field name="model">financiera.cuenta</field>
+        <field name="arch" type="xml">
+            <form string="Cuenta">
+                <header>
+                    <button name="confirmar" class="oe_highlight" string="Confirmar" states="borrador" type="object" />
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group position="inside">
+                        <group>
+                            <field name="name"/>
+                            <field name="cliente_id" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                            <field name="cliente_dni"/>
+                            <field name="responsable_id" required="1"/>
+                            <field name="especificacion_laboral"/>
+                            <field name="recibo_de_sueldo"/>
+                        </group>
+                        <group>
+                            <field name="ingresos_comprobables"/>
+                            <field name="fecha_inicio_trabajo_actual"/>
+                            <field name="active"/>
+                            <field name="limite_credito" widget="monetary"/>
+                            <field name="saldo" widget="monetary"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Prestamos">
+                            <field name="prestamo_ids">
+                                <tree string="Prestamos" create="false" edit="false" delete="false">
+                                    <field name="name" readonly="1"/>
+                                    <field name="fecha" readonly="1"/>
+                                    <field name="monto_otorgado" widget="monetary" sum="Total" readonly="1"/>
+                                    <field name="saldo" widget="monetary" sum="Total" readonly="1"/>
+                                    <field name="periodo_id" readonly="1"/>
+                                    <field name="cuotas" readonly="1"/>
+                                    <field name="tipo_de_amortizacion" readonly="1"/>
+                                    <field name="state" readonly="1"/>
+                                </tree>
+                                <form>
+                                  <header>
+                                    <field name="state" widget="statusbar"/>
+                                  </header>
+                                  <sheet>
+                                    <group>
+                                      <field name="id" readonly="1"/>
+                                      <field name="fecha" readonly="1"/>
+                                      <field name="monto_otorgado" widget="monetary" readonly="1"/>
+                                    </group>
+                                  </sheet>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    
+    <record model="ir.actions.act_window" id="financiera_cuenta_action">
+      <field name="name">Cuenta</field>
+      <field name="res_model">financiera.cuenta</field>
+      <field name="view_mode">tree,form</field>
+      <field name="view_id" ref="financiera_cuenta_tree"/>
+    </record>
+ 
+    <!-- financiera.prestamo -->
+
+    <record model="ir.ui.view" id="financiera_prestamo_tree">
+      <field name="name">Prestamo</field>
+      <field name="model">financiera.prestamo</field>
+      <field name="arch" type="xml">
+        <tree decoration-info="state == 'borrador'" decoration-muted="state == 'cancelado'">
+          <field name="cliente_id"/>
+          <field name="fecha"/>
+          <field name="name"/>
+          <field name="responsable_id"/>
+          <field name="saldo" sum="Total"/>
+          <field name="plan_id"/>
+          <field name="state"/>
+        </tree>
+      </field>
+    </record>
+
+    <record id="financiera_prestamo_form" model="ir.ui.view">
+        <field name="name">prestamo.prestamo.form</field>
+        <field name="model">financiera.prestamo</field>
+        <field name="arch" type="xml">
+            <form string="Prestamo">
+                <header>
+                    <field name="invoice_id" invisible="1"/>
+                    <button name="confirmar_prestamo" class="oe_highlight" states="borrador" string="Confirmar Prestamo" type="object" />
+                    <span attrs="{'invisible': [('invoice_id', '!=', False)]}">
+                      <button name="facturar_prestamo" class="oe_highlight" states="confirmado,activo" string="Facturar Comision y Gestion" type="object" />
+                    </span>
+                    <span attrs="{'invisible': [('invoice_id', '=', False)]}">
+                      <button name="ver_factura" class="oe_highlight" states="confirmado,activo" string="Ver Factura" type="object" />
+                    </span>
+                    <button name="comprobar_estado_prestamo" class="oe_highlight" states="activo" string="Comprobar estado" type="object" />
+                    <button name="pagar_prestamo" class="oe_highlight" states="confirmado" string="Pagar" type="object" />
+                    <button name="calcular_cuotas_plan" class="oe_highlight" states="borrador" string="Generar cuotas" type="object" />
+                    <button name="cancelar_prestamo" states="activo" string="Cancelar" type="object" />
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                  <group>
+                    <group>
+                        <field name="id"/>
+                        <field name="fecha" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="cuenta_id" domain="[('state', '=', 'confirmado'), ('active', '=', True)]" attrs="{'readonly': [('state', '!=', 'borrador')]}" options="{'no_quick_create':True,'no_create_edit':True}" required="1"/>
+                        <field name="cliente_id" readonly="1" />
+                        <field name="responsable_id" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="plan_id" required="1" domain="[('state', '=', 'confirmado')]" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="monto_otorgado" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="fecha_primer_vencimiento" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="iva" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="iva_incluido" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('iva', '=', False)]}"/>
+                        <field name="vat_tax_id" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('iva', '=', False)], 'required': [('iva', '=', True)]}"/>
+                    </group>
+                    <group>
+                      <field name="tasa_periodo"/>
+                      <field name="tasa_interna_de_rentabilidad"/>
+                      <field name="tasa_anual_equivalente"/>
+                      <field name="saldo"/>
+                      <field name="comision_de_apertura" invisible="1"/>
+                      <field name="iva_comision" invisible="1"/>
+                      <field name="gastos_de_gestion" invisible="1"/>
+                      <field name="iva_gastos" invisible="1"/>
+                      <field name="invoice_id" readonly="1"/>
+                      <field name="neto_a_pagar"/>
+                      <field name="payment_group_id" readonly="1"/>
+                    </group>
+                  </group>
+                  <notebook>
+                      <page string="Cuotas">
+                          <field name="cuota_ids">
+                              <tree string="Cuotas" create="false" edit="false" delete="false">
+                                  <field name="numero_cuota" editable="0"/>
+                                  <field name="fecha_vencimiento" editable="1"/>
+                                  <field name="saldo_capital"/>
+                                  <field name="capital" sum="Total"/>
+                                  <field name="interes" sum="Total"/>
+                                  <field name="cuota_pura" sum="Total"/>
+                                  <field name="iva" sum="Total"/>
+                                  <field name="punitorios" invisible="1"/>
+                                  <field name="punitorios_facturados" invisible="1"/>
+                                  <field name="punitorios_totales" sum="Total"/>
+                                  <field name="otros_gastos" sum="Total"/>
+                                  <field name="cobrado" sum="Total"/>
+                                  <field name="total" sum="Total"/>
+                                  <field name="saldo" sum="Total"/>
+                                  <field name="ultima_fecha_cobro"/>
+                                  <field name="state"/>
+                              </tree>
+                              <form create="false" edit="false" delete="false">
+                                <header>
+                                  <field name="state" widget="statusbar"/>
+                                </header>
+                                <header>
+                                  <field name="state_mora" widget="statusbar"/>
+                                </header>
+                                <sheet>
+                                  <group>
+                                    <field name="numero_cuota" editable="0"/>
+                                    <field name="fecha_vencimiento" editable="1"/>
+                                    <field name="saldo_capital"/>
+                                    <field name="capital" sum="Total"/>
+                                    <field name="interes" sum="Total"/>
+                                    <field name="cuota_pura" sum="Total"/>
+                                    <field name="iva" sum="Total"/>
+                                    <field name="punitorios_totales" sum="Total"/>
+                                    <field name="otros_gastos" sum="Total"/>
+                                    <field name="cobrado" sum="Total"/>
+                                    <field name="total" sum="Total"/>
+                                    <field name="saldo" sum="Total"/>
+                                    <field name="ultima_fecha_cobro"/>
+                                  </group>
+                                </sheet>
+                              </form>
+                          </field>
+                      </page>
+                      <page string="Deuda contable">
+                        <field name="debt_move_line_ids" create="false" edit="false" delete="false">
+                          <tree create="false" edit="false" delete="false">
+                            <field name="date"/>
+                            <field name="move_id" required="0"/>
+                            <field name="name"/>
+                            <field name="debit" sum="Total Debit"/>
+                            <field name="credit" sum="Total Credit"/>
+                            <field name="amount_currency" readonly="True" groups="base.group_multi_currency"/>
+                            <field name="currency_id" readonly="True" invisible="1"/>
+                            <field name="date_maturity"/>
+                            <field name="reconciled"/>
+                          </tree>                          
+                        </field>
+                      </page>
+                  </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="financiera_prestamo_action">
+      <field name="name">Prestamos</field>
+      <field name="res_model">financiera.prestamo</field>
+      <field name="view_mode">tree,form</field>
+      <field name="view_id" ref="financiera_prestamo_tree"/>
+      <field name="view_ids" eval="[(5, 0, 0), 
+        (0, 0, {'view_mode': 'tree'}), 
+        (0, 0, {'view_mode': 'form', 'view_id': ref('financiera_prestamo_form')}),                           
+        (0, 0, {'view_mode': 'kanban'})]"/>
+    </record>
+
+    <!-- View Pagar Prestamo -->
+
+    <record id="confirmar_prestamo_view" model="ir.ui.view">
+        <field name="name">confirmar.prestamo.form</field>
+        <field name="model">financiera.prestamo</field>
+        <field name="arch" type="xml">
+          <form string="Prestamo">
+            <sheet>
+              <group>
+                <field name="payment_date" required="1"/>
+                <field name="neto_a_pagar_descontar_gastos"/>
+                <field name="monto_otorgado" invisible="1"/>
+                <field name="iva_comision" invisible="1"/>
+                <field name="iva_gastos" invisible="1"/>
+                <field name="comision_de_apertura" invisible="1"/>
+                <field name="gastos_de_gestion" invisible="1"/>
+                <field name="neto_a_pagar"/>
+                <field name="journal_caja_id" required="1"/>
+                <field name="payment_communication"/>
+              </group>
+            </sheet>
+            <footer>
+              <!--<button name="write" string="Validar" type="object" class="btn-primary"/>-->
+              <button name="confirmar_pagar_prestamo" string="Pagar Prestamo" type="object" class="btn-primary"/>
+              <button string="Cancel" class="btn-default" special="cancel"/>   
+            </footer>
+          </form>
+        </field>
+    </record>
+
+    <!-- View Facturar Prestamo -->
+
+    <record id="facturar_prestamo_view" model="ir.ui.view">
+        <field name="name">facturar.prestamo.form</field>
+        <field name="model">financiera.prestamo</field>
+        <field name="arch" type="xml">
+          <form string="Prestamo">
+            <header>
+              <!--<div class="alert alert-info" role="alert" style="margin-bottom:0px;">
+                Si deja en cero los importes de comision y gastos la factura no se generara y el prestamo pasara a estar facturado de todos modos.
+              </div>-->
+            </header>
+            <sheet>
+              <group>
+                <field name="date_invoice" required="1"/>
+                <field name="comision_de_apertura"/>
+                <field name="iva_comision"/>
+                <field name="gastos_de_gestion"/>
+                <field name="iva_gastos"/>
+                <field name="journal_invoice_id" attrs="{'invisible': [('comision_de_apertura', '=', 0), ('gastos_de_gestion', '=', 0)], 'required': ['|', ('comision_de_apertura', '>', 0), ('gastos_de_gestion', '>', 0)]}"/>
+                <field name="vat_tax_id" invisible="1"/>
+                <field name="plan_id" invisible="1"/>
+              </group>
+            </sheet>
+            <footer>
+              <button name="confirmar_factura" string="Facturar Comision y Gestion" type="object" class="btn-primary"/>
+              <button string="Cancel" class="btn-default" special="cancel"/>   
+            </footer>
+          </form>
+        </field>
+    </record>
+
+
+    <!-- financiera.prestamo.cuota -->
+
+    <record model="ir.ui.view" id="financiera_prestamo_cuota_tree">
+      <field name="name">Cuota</field>
+      <field name="model">financiera.prestamo.cuota</field>
+      <field name="arch" type="xml">
+        <tree decoration-success="state == 'cobrada'" decoration-danger="state_mora in ['moraMedia', 'moraTardia', 'incobrable']" decoration-warning="state_mora in ['preventiva', 'moraTemprana']" decoration-info="state == 'borrador'" decoration-muted="state == 'cobrada'" string="Cuotas">
+          <field name="cliente_id"/>
+          <field name="display_numero_cuota"/>
+          <field name="prestamo_id"/>
+          <field name="responsable_id"/>
+          <field name="fecha_vencimiento"/>
+          <field name="saldo_capital" widget="monetary"/>
+          <field name="capital" widget="monetary" sum="Total"/>
+          <field name="interes" widget="monetary" sum="Total"/>
+          <field name="cuota_pura" widget="monetary" sum="Total"/>
+          <field name="iva" widget="monetary" sum="Total"/>
+          <field name="punitorios_totales" widget="monetary" sum="Total"/>
+          <field name="otros_gastos" widget="monetary" sum="Total"/>
+          <field name="total" widget="monetary" sum="Total"/>
+          <field name="cobrado" widget="monetary" sum="Total"/>
+          <field name="saldo" widget="monetary" sum="Total"/>
+          <field name="ultima_fecha_cobro"/>
+          <field name="state"/>
+          <field name="state_mora"/>
+          <field name="fecha_vencimiento_pre_semana" invisible="1"/>
+          <field name="fecha_vencimiento_pos_semana" invisible="1"/>
+        </tree>
+      </field>
+    </record>
+
+    <record model="ir.ui.view" id="filter_prestamo_cuota_view">
+      <field name="name">financiera.prestamo.cuota.filter</field>
+      <field name="model">financiera.prestamo.cuota</field>
+      <field name="arch" type="xml">
+        <search>
+          <field name="fecha_vencimiento_pre_semana" invisible="1"/>
+          <field name="fecha_vencimiento_pos_semana" invisible="1"/>
+          <filter string="Activas" name="activa" domain="[('state','in',('activa', 'facturado'))]"/>
+          <separator/>          
+          <filter string="Vencen Hoy" name="vence_hoy" domain="[('fecha_vencimiento','=', current_date)]"/>
+          <filter string="Vencidas con saldo" domain="[('fecha_vencimiento', '&lt;=', current_date), ('state','in', ('activa', 'facturado'))]"/>
+          <filter string="Ultima semana" domain="[('fecha_vencimiento', '&lt;=', current_date), ('fecha_vencimiento_pos_semana', '>=', current_date), ('state','in', ('activa', 'facturado'))]"/>
+          <filter string="Proxima semana" domain="[('fecha_vencimiento', '>=', current_date), ('fecha_vencimiento_pre_semana', '&lt;=', current_date), ('state','in', ('activa', 'facturado'))]"/>
+          <separator/>
+          <field name="cliente_id"/>
+          <field name="cuenta_id"/>
+          <field name="display_numero_cuota"/>
+          <field name="prestamo_id"/>
+        </search>
+      </field>
+    </record>
+
+
+
+    <record id="financiera_prestamo_cuota_form" model="ir.ui.view">
+        <field name="name">prestamo.prestamo.cuota.form</field>
+        <field name="model">financiera.prestamo.cuota</field>
+        <field name="arch" type="xml">
+            <form string="Cuota">
+                <header>
+                  <button name="facturar_cuota" class="oe_highlight" states="activa,facturado" string="Facturar cuota" type="object" />
+                  <button name="pagar_cuota" class="oe_highlight" states="facturado" string="Registrar Pago" type="object" />
+                  <button name="otros_gastos_cuota" states="activa,facturado" string="Aplicar Comision o Descuento" type="object" />
+                  <field name="state" widget="statusbar"/>
+                </header>
+                <header>
+                  <field name="state_mora" widget="statusbar"/>
+                </header>
+                <sheet>
+                  <group>
+                    <group>
+                      <field name="cliente_id" readonly="1"/>
+                      <field name="display_numero_cuota" readonly="1"/>
+                      <field name="prestamo_id" readonly="1"/>
+                      <field name="responsable_id" readonly="1"/>
+                      <field name="fecha_vencimiento" readonly="1"/>
+                      <field name="saldo_capital"/>
+                      <field name="capital"/>
+                      <field name="interes"/>
+                      <field name="cuota_pura" sum="Total"/>
+                      <field name="iva"/>
+                      <!--<field name="calculo_punitorios"/>-->
+                      <field name="punitorios_totales"/>
+                      <field name="otros_gastos"/>
+                      <field name="total"/>
+                      <field name="cobrado"/>
+                      <field name="saldo"/>
+                      <field name="ultima_fecha_cobro"/>
+                    </group>
+                    <group>
+                      <field name="cuenta_id" readonly="1"/>
+                      <field name="dias_punitorios"/>
+                      <field name="punitorios"/>
+                      <field name="punitorios_facturados" readonly="1"/>
+                    </group>
+                  </group>                    
+                  <notebook>
+                    <page string="Facturas">
+                      <field name="invoice_ids">
+                          <tree create="false" edit="false" delete="false">
+                              <field name="date_invoice" />
+                              <field name="number"/>
+                              <field name="amount_total_signed" sum="Total"/>
+                              <field name="residual_signed" sum="Amount due"/>
+                              <field name="state"/>
+                          </tree>
+                      </field>
+                    </page>
+                    <page string="Pagos">
+                      <field name="payment_group_ids"/>
+                    </page>
+                    <page string="Deuda contabilizada">
+                      <field name="debt_move_line_ids">
+                        <tree create="false" edit="false" delete="false">
+                          <field name="date"/>
+                          <field name="move_id" required="0"/>
+                          <field name="name"/>
+                          <field name="debit" sum="Total Debit"/>
+                          <field name="credit" sum="Total Credit"/>
+                          <field name="amount_currency" readonly="True" groups="base.group_multi_currency"/>
+                          <field name="currency_id" readonly="True" invisible="1"/>
+                          <field name="date_maturity"/>
+                          <field name="reconciled"/>
+                        </tree>
+                      </field>
+                    </page>
+                  </notebook>
+                </sheet>
+                <!--<div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers" groups="base.group_user"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>-->
+            </form>
+        </field>
+    </record>
+
+
+    <!-- View Facturar Prestamo Cuota -->
+
+    <record id="facturar_cuota_view" model="ir.ui.view">
+        <field name="name">facturar.prestamo.cuota</field>
+        <field name="model">financiera.prestamo.cuota</field>
+        <field name="arch" type="xml">
+          <form string="Prestamo">
+            <sheet>
+              <group>
+                <group>
+                  <field name="date_invoice" required="1"/>
+                  <field name="invoice_init" invisible="1"/>
+                  <field name="fecha_vencimiento" invisible="1"/>
+                  <field name="ultima_fecha_punitorios_facturados" invisible="1"/>
+                  <field name="saldo_capital" invisible="1"/>
+                  <field name="capital" invisible="1"/>
+                  <field name="interes" invisible="1"/>
+                  <field name="iva" invisible="1"/>
+                  <field name="prestamo_id" invisible="1"/>
+                  <field name="journal_invoice_id" required="1"/>
+                  <field name="interes" widget='monetary' attrs="{'invisible': [('invoice_init', '=', True)]}" readonly="1"/>
+                  <field name="iva" widget='monetary' attrs="{'invisible': [('invoice_init', '=', True)]}" readonly="1"/>
+                  <field name="punitorios" widget="monetary"/>
+                  <field name="factura_validacion_automatica"/>
+                </group>
+                <group>
+                  <field name="dias_punitorios" invisible="0"/>
+                  <field name="punitorios_fecha_hasta" attrs="{'required': [('punitorios', '>', 0)], 'invisible': [('punitorios', '=', 0)]}"/>
+                </group>
+              </group>
+            </sheet>
+            <footer>
+              <button name="confirmar_factura_cuota" string="Facturar Cuota" type="object" class="btn-primary"/>
+              <button string="Cancel" class="btn-default" special="cancel"/>   
+            </footer>
+          </form>
+        </field>
+    </record>
+
+    <!-- View Pagar Cuota -->
+
+    <record id="pagar_prestamo_cuota_view" model="ir.ui.view">
+        <field name="name">pagar.prestamo.cuota</field>
+        <field name="model">financiera.prestamo.cuota</field>
+        <field name="arch" type="xml">
+          <form string="Cuota">
+            <header>
+              <field name="punitorios" invisible="1"/>
+              <div class="alert alert-info" role="alert" style="margin-bottom:0px;" attrs="{'invisible': [('punitorios', '=', 0)]}">
+                Tiene <b>punitorios no facturados</b>.
+              </div>
+            </header>            
+            <sheet>
+              <group>
+                <field name="payment_date" required="1"/>
+                <field name="journal_caja_id" required="1"/>
+                <field name="saldo" invisible="1"/>
+                <field name="payment_amount"/>
+                <field name="payment_communication"/>
+              </group>
+            </sheet>
+            <footer>
+              <button name="confirmar_pagar_cuota" string="Registrar Pago" type="object" class="btn-primary"/>
+              <button string="Cancel" class="btn-default" special="cancel"/>
+            </footer>
+          </form>
+        </field>
+    </record>
+
+    <!-- View Asiganr Otros Gastos Descuentos Cuota -->
+
+    <record id="otros_gastos_cuota_view" model="ir.ui.view">
+        <field name="name">pagar.prestamo.cuota</field>
+        <field name="model">financiera.prestamo.cuota</field>
+        <field name="arch" type="xml">
+          <form string="Cuota">
+            <header>
+              <!--<div class="alert alert-info" role="alert" style="margin-bottom:0px;">
+                Para registrar un <b>gasto adicional al cliente</b>, debera indicar un numero positivo.<br></br>
+                Para registrar un <b>descuento adicional al cliente</b>, debera indicarlo mediante un numero negativo.
+              </div>-->
+            </header>            
+            <sheet>
+              <group>
+                <field name="otros_gastos_fecha" required="1"/>
+                <field name="otros_gastos_tipo" required="1"/>
+                <field name="otros_gastos" invisible="1"/>
+                <field name="cuenta_id" invisible="1"/>
+                <field name="prestamo_id" invisible="1"/>
+                <field name="otros_gastos_journal2_id" attrs="{'required': [('otros_gastos_tipo', '=', 'gasto')], 'invisible': [('otros_gastos_tipo', '!=', 'gasto')]}"/>
+
+                <field name="otros_gastos_journal_id" attrs="{'required': [('otros_gastos_tipo', '=', 'descuento')], 'invisible': [('otros_gastos_tipo', '!=', 'descuento')]}"/>
+                <field name="otros_gastos_nuevo_importe" required="1"/>
+                <field name="otros_gastos_iva" attrs="{'invisible': [('otros_gastos_tipo', '!=', 'gasto')]}"/>
+                <field name="otros_gastos_iva_monto" attrs="{'invisible': ['|', ('otros_gastos_tipo', '!=', 'gasto'), ('otros_gastos_iva', '=', False)]}"/>
+              </group>
+            </sheet>
+            <footer>
+              <button name="confirmar_otros_gastos" string="Confirmar" type="object" class="btn-primary"/>
+              <button string="Cancel" class="btn-default" special="cancel"/>
+            </footer>
+          </form>
+        </field>
+    </record>
+
+    <record id="cuotas_preventiva" model="ir.actions.server">
+      <field name="name">Cuotas en Preventiva</field>
+      <field name="condition">True</field>
+      <field name="type">ir.actions.server</field>
+      <field name="model_id" ref="model_financiera_prestamo_cuota" />
+      <field name="state">code</field>
+      <field name="code">action = self.cuotas_en_preventiva(cr, uid, context.get('active_ids', []), context=context)</field>
+    </record>
+
+    <record id="cuotas_moratemprana" model="ir.actions.server">
+      <field name="name">Cuotas en Mora Temprana</field>
+      <field name="condition">True</field>
+      <field name="type">ir.actions.server</field>
+      <field name="model_id" ref="model_financiera_prestamo_cuota" />
+      <field name="state">code</field>
+      <field name="code">action = self.cuotas_en_moratemprana(cr, uid, context.get('active_ids', []), context=context)</field>
+    </record>
+
+    <record id="cuotas_moramedia" model="ir.actions.server">
+      <field name="name">Cuotas en Mora Media</field>
+      <field name="condition">True</field>
+      <field name="type">ir.actions.server</field>
+      <field name="model_id" ref="model_financiera_prestamo_cuota" />
+      <field name="state">code</field>
+      <field name="code">action = self.cuotas_en_moramedia(cr, uid, context.get('active_ids', []), context=context)</field>
+    </record>
+
+    <record id="cuotas_moratardia" model="ir.actions.server">
+      <field name="name">Cuotas en Mora Tardia</field>
+      <field name="condition">True</field>
+      <field name="type">ir.actions.server</field>
+      <field name="model_id" ref="model_financiera_prestamo_cuota" />
+      <field name="state">code</field>
+      <field name="code">action = self.cuotas_en_moratardia(cr, uid, context.get('active_ids', []), context=context)</field>
+    </record>
+
+    <record id="cuotas_incobrables" model="ir.actions.server">
+      <field name="name">Cuotas Incobrables</field>
+      <field name="condition">True</field>
+      <field name="type">ir.actions.server</field>
+      <field name="model_id" ref="model_financiera_prestamo_cuota" />
+      <field name="state">code</field>
+      <field name="code">action = self.cuotas_incobrable(cr, uid, context.get('active_ids', []), context=context)</field>
+    </record>
+
+    <record model="ir.actions.act_window" id="financiera_prestamo_cuota_action">
+      <field name="name">Cuota</field>
+      <field name="res_model">financiera.prestamo.cuota</field>
+      <field name="view_mode">tree,form</field>
+      <field name="context">{'search_default_activa':1}</field>
+      <field name="view_ids" eval="[(5, 0, 0), 
+        (0, 0, {'view_mode': 'tree'}), 
+        (0, 0, {'view_mode': 'form', 'view_id': ref('financiera_prestamo_cuota_form')}),                           
+        (0, 0, {'view_mode': 'kanban'})]"/>
+    </record>
+
+    <!-- financiera.prestamo.plan -->
+
+    <record model="ir.ui.view" id="financiera_prestamo_plan_tree">
+      <field name="name">Plan</field>
+      <field name="model">financiera.prestamo.plan</field>
+      <field name="arch" type="xml">
+        <tree>
+          <field name="name"/>
+          <field name="codigo"/>
+          <!-- <field name="active"/>-->
+          <field name="cuotas"/>
+          <field name="tasa_de_interes_anual"/>
+          <field name="tasa_de_interes_mensual"/>
+          <field name="tipo_de_amortizacion"/>
+          <field name="state"/>
+        </tree>
+      </field>
+    </record>
+
+    <record id="financiera_prestamo_plan_form" model="ir.ui.view">
+        <field name="name">financiera.prestamo.plan.form</field>
+        <field name="model">financiera.prestamo.plan</field>
+        <field name="arch" type="xml">
+            <form string="Plan">
+                <header>
+                  <button name="confirmar_plan" class="oe_highlight" states="borrador" string="Confirmar Plan" type="object" />
+                  <!--<button name="editar_plan" class="oe_highlight" states="confirmado,obsoleto" string="Editar Plan" type="object" />-->
+                  <button name="depreciar_plan" states="confirmado" string="Depreciar Plan" type="object" />
+                  <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group>
+                        <field name="name" attrs="{'readonly': [('state', '!=', 'borrador')], 'required': True}"/>
+                        <field name="codigo" attrs="{'readonly': [('state', '!=', 'borrador')], 'required': True}"/>
+                        <field name="recibo_de_sueldo" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="forma_de_pago" attrs="{'readonly': [('state', '!=', 'borrador')], 'required': True}"/>
+                        <field name="dias_de_cobro" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('forma_de_pago', '!=', 'diario')], 'required': [('forma_de_pago', '=', 'diario')]}"/>
+                        <field name="tipo_de_amortizacion" attrs="{'readonly': [('state', '!=', 'borrador')], 'required': True}"/>
+                        <!--<field name="dias_entre_vencimientos" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('forma_de_pago', '!=', 'dias')]}"/>-->
+                        <field name="cuotas" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="monto_cuota" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('tipo_de_amortizacion', '!=', 'sistema_manual')], 'required': [('tipo_de_amortizacion', '=', 'sistema_manual')]}"/>
+                        <field name="monto_a_financiar" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('tipo_de_amortizacion', '!=', 'sistema_manual')], 'required': [('tipo_de_amortizacion', '=', 'sistema_manual')]}"/>
+                        <field name="monto_punitorio_diario" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('tipo_de_amortizacion', '!=', 'sistema_manual')], 'required': [('tipo_de_amortizacion', '=', 'sistema_manual')]}"/>
+                        <field name="tasa_de_interes_anual" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('tipo_de_amortizacion', '=', 'sistema_manual')]}"/>
+                        <field name="tasa_de_interes_mensual" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('tipo_de_amortizacion', '=', 'sistema_manual')]}"/>
+                        <field name="tasa_mensual_de_punitorios" attrs="{'readonly': [('state', '!=', 'borrador')], 'invisible': [('tipo_de_amortizacion', '=', 'sistema_manual')]}"/>
+                        <!--<field name="dias_de_gracia_punitorios" invisible="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>-->
+
+                        <field name="factura_validacion_automatica"/>
+                        <field name="iva" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="iva_incluido" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="proporcional_primer_cuota" invisible="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="capital_a_cobrar_id" required="1" attrs="{'readonly': [('state', '!=', 'borrador')]}"/>
+                        <field name="comision_de_apertura"/>
+                        <field name="cuenta_comision_de_apertura" required="1"/>
+                        <field name="iva_comision"/>
+                        <field name="gastos_de_gestion"/>
+                        <field name="cuenta_gastos_de_gestion" required="1"/>
+                        <field name="iva_gastos"/>
+                        <field name="dias_preventivo"/>
+                        <field name="dias_moraTemprana"/>
+                        <field name="dias_moraMeida"/>
+                        <field name="dias_moraTardia"/>
+                        <field name="dias_incobrable"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record model="ir.ui.view" id="filter_plan_view">
+      <field name="name">financiera.prestamo.plan.filter</field>
+      <field name="model">financiera.prestamo.plan</field>
+      <field name="arch" type="xml">
+        <search>
+          <filter string="Activos" name="activos" domain="[('state','=','confirmado')]"/>
+          <filter string="Obsoletos" domain="[('state','=','obsoleto')]"/>
+          <field name="name"/>
+          <field name="codigo"/>
+          <field name="cuotas"/>
+          <field name="tipo_de_amortizacion"/>
+        </search>
+      </field>
+    </record>
+
+    <record model="ir.actions.act_window" id="financiera_prestamo_plan_action">
+      <field name="name">Plan de pagos</field>
+      <field name="res_model">financiera.prestamo.plan</field>
+      <field name="view_mode">tree,form</field>
+      <field name="context">{'search_default_activos':1}</field>
+      <field name="view_id" ref="financiera_prestamo_plan_tree"/>
+    </record>
+
+
+    <!-- Financiera Configuracion -->
+
+    <record model="ir.ui.view" id="financiera_configuracion_tree">
+      <field name="name">financiera.configuracion</field>
+      <field name="model">financiera.configuracion</field>
+      <field name="arch" type="xml">
+        <tree create="false" delete="false">
+          <field name="name"/>
+        </tree>
+      </field>
+    </record>
+
+    <record id="financiera_configuraicon_form" model="ir.ui.view">
+        <field name="name">financiera.configuracion</field>
+        <field name="model">financiera.configuracion</field>
+        <field name="arch" type="xml">
+            <form string="Configuracion" create="false" delete="false">
+                <sheet>
+                    <group>
+                      <field name="id"/>
+                      <field name="name"/>
+                      <field name="factura_validacion_automatica"/>
+                      <field name="journal_invoice_id" required="1"/>
+                      <field name="dias_preventivo"/>
+                      <field name="dias_moraTemprana"/>
+                      <field name="dias_moraMeida"/>
+                      <field name="dias_moraTardia"/>
+                      <field name="dias_incobrable"/>
+                      <field name="capital_a_cobrar_id" required="1"/>
+                      <field name="cuenta_comision_de_apertura" required="1"/>
+                      <field name="cuenta_gastos_de_gestion" required="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    
+    <record model="ir.actions.act_window" id="financiera_configuracion_action">
+      <field name="name">Configuracion</field>
+      <field name="res_model">financiera.configuracion</field>
+      <field name="view_mode">tree,form</field>
+      <field name="view_id" ref="financiera_configuracion_tree"/>
+    </record>
+
+    <!-- Top menu item -->
+    
+    <menuitem name="Prestamos" id="menu_financiera" web_icon="financiera_prestamos,static/description/icon.png" groups="financiera_prestamos.manager,financiera_prestamos.user"/>
+    
+    <!-- menu categories -->
+    
+    <menuitem name="Cuentas" id="menu_cuentas" sequence="100" parent="menu_financiera"/>
+    <menuitem name="Prestamos" id="menu_prestamos" sequence="110" parent="menu_financiera"/>
+    <menuitem name="Cuotas" id="menu_cuotas" sequence="120" parent="menu_financiera"/>
+    <menuitem name="Contabilidad" id="smenu_bank_and_check" sequence="130" parent="menu_financiera"/>
+    <menuitem name="Configuracion" id="menu_configuracion" sequence="140" parent="menu_financiera" groups="financiera_prestamos.manager"/>
+
+    <!-- actions -->
+    
+    <menuitem name="Cuentas" id="menu_cuentas_action" parent="menu_cuentas" 
+      action="financiera_cuenta_action"/>
+
+    <menuitem name="Prestamos" id="menu_prestamos_action" parent="menu_prestamos" 
+      action="financiera_prestamo_action"/>
+
+    <menuitem name="Cuotas" id="menu_prestamos_cuotas_action" parent="menu_cuotas" 
+      action="financiera_prestamo_cuota_action"/>
+
+    <menuitem id='menu_cuotas_preventiva_action' name='Preventivas' sequence="100" parent="menu_cuotas" action="cuotas_preventiva"/>
+    <menuitem id='menu_cuotas_moratemprana_action' name='Mora Temprana' sequence="101" parent="menu_cuotas" action="cuotas_moratemprana"/>
+    <menuitem id='menu_cuotas_moramedia_action' name='Mora Media' sequence="102" parent="menu_cuotas" action="cuotas_moramedia"/>
+    <menuitem id='menu_cuotas_moratardia_action' name='Mora Tardia' sequence="103" parent="menu_cuotas" action="cuotas_moratardia"/>
+    <menuitem id='menu_cuotas_incobrables_action' name='Incobrables' sequence="104" parent="menu_cuotas" action="cuotas_incobrables"/>
+
+    <menuitem id="smenu_registro_caja_action" name="Registros de caja" parent="smenu_bank_and_check" action="account.action_view_bank_statement_tree"  sequence="0" />
+    <menuitem id="smenu_transferencias_action" name="Transferencias" parent="smenu_bank_and_check" action="account_payment_group.action_account_payments_transfer"  sequence="5" />
+
+    <menuitem name="Configuracion" id="menu_configuracion_action" sequence="100" parent="menu_configuracion" 
+      action="financiera_configuracion_action"/>
+    <menuitem name="Planes" id="menu_prestamos_plan_action" sequence="101" parent="menu_configuracion" 
+      action="financiera_prestamo_plan_action"/>
+  </data>
+</openerp>

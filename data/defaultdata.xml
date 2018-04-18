@@ -1,0 +1,12 @@
+<openerp>
+	<data>
+		<record id="item_configuration" model="financiera.configuracion">
+		    <field name="name">Configuracion</field>
+		    <field name="dias_preventivo">10</field>
+		    <field name="dias_moraTemprana">2</field>
+		    <field name="dias_moraMeida">30</field>
+		    <field name="dias_moraTardia">60</field>
+		    <field name="dias_incobrable">180</field>
+		</record>
+	</data>
+</openerp>
